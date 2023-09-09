@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8" />
+        <title>api4.mapy.cz - geokódování</title>
+        <script type="text/javascript" src="https://api.mapy.cz/loader.js"></script>
+        <script type="text/javascript">Loader.load();</script>
+    </head>
+    <body id="advanced-geocoding">
+        https://api.mapy.cz/view?page=geocoding
+        <div id="m" style="height:360px"></div>
+        <form id="form">
+            <p>
+                <label>Hledaná oblast (nutné s diakritikou): <input type="text" id="query" value="Radlická 2" /></label>
+                <input type="submit" value="Hledat" id="btn-send" />
+            </p>
+        </form>
+
+        <div id="selectedResult">
+            <h2>Detaily vybraného výsledku</h2>
+            <p>Label: <span id="selectedLabel"></span></p>
+            <p>Coord: <span id="selectedCoord"></span></p>
+        </div>
+
+        <ul id="result"></ul>
+
+<script>
+var m = new SMap(JAK.gel("m"));
+m.addControl(new SMap.Control.Sync());
+m.addDefaultLayer(SMap.DEF_BASE).enable();
+m.addDefaultControls();
+
+var vysledky = [  ];
+
+// Získání elementu <ul> do kterého budeme vkládat výsledky
+var ulElement = document.getElementById("result");
+
+// Získání elementů pro detaily vybraného výsledku
+var selectedLabelElement = document.getElementById("selectedLabel");
+var selectedCoordElement = document.getElementById("selectedCoord");
+
+function geokoduj(e, elm) {  /* Voláno při odeslání */
+    JAK.Events.cancelDef(e); /* Zamezit odeslání formuláře */
+    var query = JAK.gel("query").value;
+    new SMap.Geocoder(query, odpoved);
+}
+
+function odpoved(geocoder) { /* Odpověď */
+    if (!geocoder.getResults()[0].results.length) {
+        alert("Tohle neznáme.");
+        return;
+    }
+
+    var vysledky = geocoder.getResults()[0].results;
+
+    // Proměnná pro uložení vybraného výsledku
+    var selected = null;
+
+    var data = [];
+    while (vysledky.length) {
+        var item = vysledky.shift();
+        console.log(item);
+
+        var x = item.coords.x;
+        var y = item.coords.y;
+        var label = item.label;
+
+        console.log("Hodnota x:", x);
+        console.log("Hodnota y:", y);
+
+        // Vytvoření nového <li> elementu pro každý výsledek
+        var liElement = document.createElement("li");
+
+        // Přidání atributů "data-" k <li> elementu
+        liElement.setAttribute("data-coord", y + "," + x);
+        liElement.setAttribute("data-label", label);
+
+        // Naplnění obsahu <li> elementu
+        liElement.innerHTML = "Label: " + label + "<br>";
+        liElement.innerHTML += "Hodnota x: " + x + "<br>";
+        liElement.innerHTML += "Hodnota y: " + y + "<br>";
+
+        // Přidání click event listeneru k <li> elementu
+        liElement.addEventListener("click", function() {
+            // Získání dat z atributů "data-" kliknutého <li> elementu
+            var coord = this.getAttribute("data-coord");
+            var label = this.getAttribute("data-label");
+
+            // Rozdělení hodnoty coord na y a x
+            var [y, x] = coord.split(",");
+
+            // Uložení vybraného výsledku
+            selected = {
+                coords: {
+                    x: parseFloat(x),
+                    y: parseFloat(y)
+                },
+                label: label
+            };
+
+            // Zobrazení detailů vybraného výsledku
+            selectedLabelElement.textContent = label;
+            selectedCoordElement.textContent = coord;
+
+            console.log("Vybráno místo: " + label);
+            console.log("GPS: " + coord);
+        });
+
+        // Přidání <li> elementu do <ul>
+        ulElement.appendChild(liElement);
+    }
+    //alert(data.join("\n"));
+}
+
+// Event listener pro tlačítko "Smazat výsledky"
+var smazatButton = document.getElementById("btn-send");
+smazatButton.addEventListener("click", function() {
+    // Vymaže veškerý obsah elementu <ul>
+    ulElement.innerHTML = "";
+
+    // Nulování vybraného výsledku a detailů
+    selected = null;
+    selectedLabelElement.textContent = "";
+    selectedCoordElement.textContent = "";
+});
+
+var form = JAK.gel("form");
+JAK.Events.addListener(form, "submit", geokoduj); /* Při odeslání formuláře pustit geokódování */
+
+
+
+</script>
+
+    </body>
+</html>
